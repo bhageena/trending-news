@@ -1,0 +1,444 @@
+{
+    "_": {
+        "postman_id": "87eddc04-552e-411a-82a7-4eff1d019079"
+    },
+    "item": [
+        {
+            "_": {
+                "postman_id": "ac623148-db4f-4041-a712-1713f58be298"
+            },
+            "id": "ac623148-db4f-4041-a712-1713f58be298",
+            "name": "Get Bearer Token",
+            "request": {
+                "url": {
+                    "protocol": "https",
+                    "path": [
+                        "api",
+                        "trending-news",
+                        "get-bearer-token"
+                    ],
+                    "host": [
+                        "raichand-8hewsxu9v3e-apigcp",
+                        "nimbella",
+                        "io"
+                    ],
+                    "query": [],
+                    "variable": []
+                },
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Basic {{BearerToken}}"
+                    },
+                    {
+                        "name": "Content-Type",
+                        "key": "Content-Type",
+                        "value": "application/x-www-form-urlencoded;charset=UTF-8"
+                    }
+                ],
+                "method": "POST",
+                "body": {
+                    "mode": "urlencoded",
+                    "urlencoded": [
+                        {
+                            "key": "grant_type",
+                            "value": "client_credentials"
+                        }
+                    ],
+                    "options": {}
+                }
+            },
+            "response": [],
+            "event": [
+                {
+                    "listen": "prerequest",
+                    "script": {
+                        "id": "82d9794b-c59f-4353-a188-128674700314",
+                        "type": "text/javascript",
+                        "exec": [
+                            "const access_token = pm.environment.get('CONSUMER_API_KEY');",
+                            "const access_secret = pm.environment.get('CONSUMER_API_SECRET');",
+                            "",
+                            "const access_string = access_token + ':' + access_secret;",
+                            "",
+                            "pm.variables.set('BearerToken', btoa(access_string));"
+                        ]
+                    }
+                },
+                {
+                    "listen": "test",
+                    "script": {
+                        "id": "174422ec-228c-4271-8938-5256689b058d",
+                        "type": "text/javascript",
+                        "exec": [
+                            "nimbella.redis().set('twitter_access_token', response.json().access_token);",
+                            "test(\"Successful POST request\", function () {",
+                            "    expect(response.code).to.be.oneOf([201,202]);",
+                            "});",
+                            "test(\"Response time is less than 500ms\", function () {",
+                            "    expect(response.responseTime).to.be.below(500);",
+                            "});",
+                            "test(\"response json data should not have errors\", function () {",
+                            "    response.to.have.jsonBody();",
+                            "    response.to.not.have.jsonBody('error');",
+                            "});",
+                            "test(\"Successful POST request\", function () {",
+                            "    expect(response.code).to.be.oneOf([201,202]);",
+                            "});",
+                            "test(\"Response time is less than 500ms\", function () {",
+                            "    expect(response.responseTime).to.be.below(500);",
+                            "});",
+                            "test(\"response json data should not have errors\", function () {",
+                            "    response.to.have.jsonBody();",
+                            "    response.to.not.have.jsonBody('error');",
+                            "});",
+                            "pm.test(\"Successful POST request\", function () {",
+                            "    pm.expect(pm.response.code).to.be.oneOf([201,202]);",
+                            "});",
+                            "pm.test(\"Response time is less than 500ms\", function () {",
+                            "    pm.expect(pm.response.responseTime).to.be.below(500);",
+                            "});",
+                            "pm.test(\"response json data should not have errors\", function () {",
+                            "    pm.response.to.have.jsonBody();",
+                            "    pm.response.to.not.have.jsonBody('error');",
+                            "});"
+                        ]
+                    }
+                }
+            ],
+            "protocolProfileBehavior": {
+                "disableBodyPruning": true
+            }
+        },
+        {
+            "_": {
+                "postman_id": "9528a2cc-f1fc-4f2e-b293-c5630f466598"
+            },
+            "id": "9528a2cc-f1fc-4f2e-b293-c5630f466598",
+            "name": "Get Trending Topics",
+            "request": {
+                "url": "https://raichand-8hewsxu9v3e-apigcp.nimbella.io/api/trending-news/get-trending-topics?id=1",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{twitter_access_token}}"
+                    }
+                ],
+                "method": "GET"
+            },
+            "response": [],
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "id": "9ed6effe-edfb-45fc-9971-42112fb32581",
+                        "type": "text/javascript",
+                        "exec": [
+                            "",
+                            "//Initializations",
+                            "var postObject = {\"text\": \"These are the news articles trending on Twitter today\", \"attachments\": []}",
+                            "nimbella.redis().set(\"number\", 0); //Number of articles found",
+                            "nimbella.redis().numberleft= process.env.NUMBER_ARTICLES; //Number of articles left to find",
+                            "nimbella.redis().set(\"post\", JSON.stringify(postObject)); //Converts the postobject into a string to save as environment variable",
+                            "",
+                            "var jsonData = response.json();",
+                            "var trendArray = jsonData[0].trends; //Array of all trending topics",
+                            "var queryarray = []; //Array of all query terms (After formatting)",
+                            "var keywordarray = []; //Array of unformatted keyword (to be used as reference later)",
+                            "var topicArray = trendArray.map(a => a.name);",
+                            "",
+                            "for (index = 0; index < topicArray.length; index++) { ",
+                            "    var keyword = topicArray[index]; ",
+                            "    var query;",
+                            "    ",
+                            "    if(keyword[0] == '#') query = insertSpaces(keyword.slice(1));",
+                            "    else query = insertSpaces(keyword);",
+                            "    ",
+                            "    keywordarray.push(keyword);",
+                            "    queryarray.push(query);",
+                            "}",
+                            "",
+                            "//Function that converts hash tags into query format (Ex: WorldPeaceDay - World Peace Day)",
+                            "function insertSpaces(string) {",
+                            "    string = string.replace(/([a-z])([A-Z])/g, '$1 $2');",
+                            "    string = string.replace(/([A-Z])([A-Z][a-z])/g, '$1 $2')",
+                            "    string = string.replace(/([^\\d\\s%])(\\d)/g, '$1 $2')",
+                            "    return string;",
+                            "}",
+                            "test(\"response is ok\", function () {",
+                            "    response.to.have.status(200);",
+                            "});",
+                            "test(\"Response time is less than 500ms\", function () {",
+                            "    expect(response.responseTime).to.be.below(500);",
+                            "});",
+                            "test(\"response json data should not have errors\", function () {",
+                            "    response.to.have.jsonBody();",
+                            "    response.to.not.have.jsonBody('error');",
+                            "});",
+                            "test(\"response is ok\", function () {",
+                            "    response.to.have.status(200);",
+                            "});",
+                            "test(\"Response time is less than 500ms\", function () {",
+                            "    expect(response.responseTime).to.be.below(500);",
+                            "});",
+                            "test(\"response json data should not have errors\", function () {",
+                            "    response.to.have.jsonBody();",
+                            "    response.to.not.have.jsonBody('error');",
+                            "});",
+                            "pm.test(\"response is ok\", function () {",
+                            "    pm.response.to.have.status(200);",
+                            "});",
+                            "pm.test(\"Response time is less than 500ms\", function () {",
+                            "    pm.expect(pm.response.responseTime).to.be.below(500);",
+                            "});",
+                            "pm.test(\"response json data should not have errors\", function () {",
+                            "    pm.response.to.have.jsonBody();",
+                            "    pm.response.to.not.have.jsonBody('error');",
+                            "});"
+                        ]
+                    }
+                }
+            ],
+            "protocolProfileBehavior": {
+                "disableBodyPruning": true
+            }
+        },
+        {
+            "_": {
+                "postman_id": "23038cba-012b-45ca-a545-0c2254e7245e"
+            },
+            "id": "23038cba-012b-45ca-a545-0c2254e7245e",
+            "name": "Get News Articles",
+            "request": {
+                "description": {
+                    "content": "Requests news articles from newsapi.org with query text and language as English",
+                    "type": "text/plain"
+                },
+                "url": "https://raichand-8hewsxu9v3e-apigcp.nimbella.io/api/trending-news/get-news-articles?q={{query}}&apiKey={{NEWS_API_KEY}}&language=en",
+                "method": "GET"
+            },
+            "response": [],
+            "event": [
+                {
+                    "listen": "prerequest",
+                    "script": {
+                        "id": "f6a0b123-f3a2-4322-b122-f5268ec88c7a",
+                        "type": "text/javascript",
+                        "exec": [
+                            "queryarray = pm.variables.get(\"queryarray\");",
+                            "keyarray = pm.variables.get(\"keyarray\");",
+                            "",
+                            "if(queryarray[pm.variables.get(\"number\")]){",
+                            "    pm.variables.set(\"query\", queryarray[pm.variables.get(\"number\")])",
+                            "    pm.variables.set(\"key\", keyarray[pm.variables.get(\"number\")])",
+                            "}",
+                            "else{",
+                            "    // Deletes older query if no new queries are found",
+                            "    pm.variables.unset(\"query\")",
+                            "    pm.variables.set(\"numberleft\", 0)",
+                            "}",
+                            ""
+                        ]
+                    }
+                },
+                {
+                    "listen": "test",
+                    "script": {
+                        "id": "4c7a8cc6-a0c8-4174-9516-8b51126353e3",
+                        "type": "text/javascript",
+                        "exec": [
+                            "var json = response.json()",
+                            "",
+                            "nimbella.redis().set('number', nimbella.redis().get('number') + 1)",
+                            "",
+                            "if(json.articles.length > 0 && nimbella.redis().get('query')){ //Checking if articles related to  a trend are available",
+                            "",
+                            "    nimbella.redis().set('numberleft', nimbella.redis().get('numberleft') - 1)",
+                            "    ",
+                            "    var article = json.articles[0]; //Selects the first article in the list",
+                            "    ",
+                            "    var currenttextObject = JSON.parse(nimbella.redis().get('post'))",
+                            "    ",
+                            "    currenttextObject.attachments.push({\"title\":nimbella.redis().get(\"key\") + ",
+                            "    \"\\n\" + article.title, \"text\":article.description,\"color\": \"#7CD197\", ",
+                            "                            \"actions\": [{",
+                            "                                            \"type\": \"button\",",
+                            "                                            \"text\": \"Read More\",",
+                            "                                            \"url\": article.url",
+                            "                                        }]",
+                            "    })",
+                            "    ",
+                            "    nimbella.redis().set('post', JSON.stringify(currenttextObject))",
+                            "}",
+                            "",
+                            "if(nimbella.redis().get('numberleft') > 0)",
+                            "    console.log('Get News Articles')",
+                            "test(\"response is ok\", function () {",
+                            "    response.to.have.status(200);",
+                            "});",
+                            "test(\"Response time is less than 500ms\", function () {",
+                            "    expect(response.responseTime).to.be.below(500);",
+                            "});",
+                            "test(\"response json data should not have errors\", function () {",
+                            "    response.to.have.jsonBody();",
+                            "    response.to.not.have.jsonBody('error');",
+                            "});",
+                            "test(\"response is ok\", function () {",
+                            "    response.to.have.status(200);",
+                            "});",
+                            "test(\"Response time is less than 500ms\", function () {",
+                            "    expect(response.responseTime).to.be.below(500);",
+                            "});",
+                            "test(\"response json data should not have errors\", function () {",
+                            "    response.to.have.jsonBody();",
+                            "    response.to.not.have.jsonBody('error');",
+                            "});",
+                            "pm.test(\"response is ok\", function () {",
+                            "    pm.response.to.have.status(200);",
+                            "});",
+                            "pm.test(\"Response time is less than 500ms\", function () {",
+                            "    pm.expect(pm.response.responseTime).to.be.below(500);",
+                            "});",
+                            "pm.test(\"response json data should not have errors\", function () {",
+                            "    pm.response.to.have.jsonBody();",
+                            "    pm.response.to.not.have.jsonBody('error');",
+                            "});"
+                        ]
+                    }
+                }
+            ],
+            "protocolProfileBehavior": {
+                "disableBodyPruning": true
+            }
+        },
+        {
+            "_": {
+                "postman_id": "2eae48dc-da9c-48a5-9fcb-fc25af06ab09"
+            },
+            "id": "2eae48dc-da9c-48a5-9fcb-fc25af06ab09",
+            "name": "Post News Articles",
+            "request": {
+                "description": {
+                    "content": "Sends the news articles to the Slack channel\n\nSLACK_HOOK: Entire URL of the Slack hook (Ex: https://hooks.slack.com/services/TTFF7GGAA/DEHHHHKJL/FdfEdfjdkrueiso)",
+                    "type": "text/plain"
+                },
+                "url": {
+                    "protocol": "https",
+                    "path": [
+                        "api",
+                        "trending-news",
+                        "post-news-articles"
+                    ],
+                    "host": [
+                        "raichand-8hewsxu9v3e-apigcp",
+                        "nimbella",
+                        "io"
+                    ],
+                    "query": [],
+                    "variable": []
+                },
+                "header": [
+                    {
+                        "name": "Content-Type",
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "method": "POST",
+                "body": {
+                    "mode": "raw",
+                    "raw": "{{post}}",
+                    "options": {}
+                }
+            },
+            "response": [],
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "id": "49207d92-0bd7-46df-915b-98d46ad3651d",
+                        "type": "text/javascript",
+                        "exec": [
+                            "",
+                            "test(\"Successful POST request\", function () {",
+                            "    expect(response.code).to.be.oneOf([201,202]);",
+                            "});",
+                            "test(\"Response time is less than 500ms\", function () {",
+                            "    expect(response.responseTime).to.be.below(500);",
+                            "});",
+                            "test(\"response json data should not have errors\", function () {",
+                            "    response.to.have.jsonBody();",
+                            "    response.to.not.have.jsonBody('error');",
+                            "});",
+                            "test(\"Successful POST request\", function () {",
+                            "    expect(response.code).to.be.oneOf([201,202]);",
+                            "});",
+                            "test(\"Response time is less than 500ms\", function () {",
+                            "    expect(response.responseTime).to.be.below(500);",
+                            "});",
+                            "test(\"response json data should not have errors\", function () {",
+                            "    response.to.have.jsonBody();",
+                            "    response.to.not.have.jsonBody('error');",
+                            "});",
+                            "pm.test(\"Successful POST request\", function () {",
+                            "    pm.expect(pm.response.code).to.be.oneOf([201,202]);",
+                            "});",
+                            "pm.test(\"Response time is less than 500ms\", function () {",
+                            "    pm.expect(pm.response.responseTime).to.be.below(500);",
+                            "});",
+                            "pm.test(\"response json data should not have errors\", function () {",
+                            "    pm.response.to.have.jsonBody();",
+                            "    pm.response.to.not.have.jsonBody('error');",
+                            "});"
+                        ]
+                    }
+                },
+                {
+                    "listen": "prerequest",
+                    "script": {
+                        "id": "c103a47c-217c-4c0e-af17-898952e30da5",
+                        "type": "text/javascript",
+                        "exec": [
+                            ""
+                        ]
+                    }
+                }
+            ],
+            "protocolProfileBehavior": {
+                "disableBodyPruning": true
+            }
+        }
+    ],
+    "event": [
+        {
+            "listen": "prerequest",
+            "script": {
+                "id": "e08c52e0-7cd2-4eb6-8621-a55b89cd2e36",
+                "type": "text/javascript",
+                "exec": [
+                    ""
+                ]
+            }
+        },
+        {
+            "listen": "test",
+            "script": {
+                "id": "635f8ca0-8dd1-481c-99b1-ea4b9b622b8d",
+                "type": "text/javascript",
+                "exec": [
+                    ""
+                ]
+            }
+        }
+    ],
+    "variable": [],
+    "info": {
+        "_postman_id": "87eddc04-552e-411a-82a7-4eff1d019079",
+        "name": "Trending News",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+        "description": {
+            "content": "Do you look at Twitter hash tags and not understand the context behind them? Do you find yourself clueless when it comes to trending topics? This collection is for you.\n\nIt will pull the trending hash tags off Twitter and match them with corresponding news articles. These news articles will then be pushed to the slack channel of your choice. Don't want others to read your articles? You can push them to your own private chat too.\n\nSetup:\n\n1. We need to setup a Twitter App to use the Twitter API - [Getting Started](https://developer.twitter.com/en/docs/basics/getting-started)\n\n2. We will be using Application-only authentication for this Collection - [Application Only Auth](https://developer.twitter.com/en/docs/basics/authentication/overview/application-only)\n\n3. Once we create the Twitter App we will need to fetch the Consumer API Key and Consumer API secret key. Add them in the environment as `CONSUMER_API_KEY` and `CONSUMER_API_SECRET` respectively.\n\n4. We will need to add the `NEWS_API_KEY` from [newsapi.org](newsapi.org)\n\n5. And, `SLACK_HOOK` which is the Webhook to the Slack channel you want the news articles posted to.\n\n6. Finally, we set `NUMBER_ARTICLES` to the maximum number of articles to be pushed to Slack",
+            "type": "text/plain"
+        }
+    }
+}
