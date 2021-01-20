@@ -1,0 +1,7 @@
+packages:
+  - name: trending-news
+    actions:
+      - name: get-bearer-token
+      - name: get-trending-topics
+      - name: get-news-articles
+      - name: post-news-articles
